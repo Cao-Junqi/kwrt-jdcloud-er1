@@ -20,6 +20,9 @@ commit luci
 EOF
 
 if uci -q get adblock-fast.config >/dev/null; then
+	for section in $(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)=file_url$/\1/p"); do
+		uci -q set "$section.enabled=0"
+	done
 	list_section="$(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)\.name='1Hosts - Lite'$/\1/p")"
 	uci -q set adblock-fast.config.enabled='1'
 	uci -q set adblock-fast.config.force_dns='0'
@@ -29,6 +32,7 @@ fi
 
 if uci -q get shadowsocksr.@global[0] >/dev/null; then
 	uci -q set shadowsocksr.@global[0].global_server='nil'
+	uci -q set shadowsocksr.@global[0].tunnel_forward='8.8.8.8:53'
 	uci -q commit shadowsocksr
 fi
 

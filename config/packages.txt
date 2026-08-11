@@ -5,6 +5,10 @@ luci-i18n-aurora-config-zh-cn
 luci-theme-argon
 luci-app-argon-config
 luci-app-adblock-fast
+gawk
+grep
+sed
+coreutils-sort
 luci-app-ssr-plus
 xray-core
 luci-app-frpc
