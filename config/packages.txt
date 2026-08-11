@@ -6,6 +6,7 @@ luci-theme-argon
 luci-app-argon-config
 luci-app-adblock-fast
 luci-app-ssr-plus
+xray-core
 luci-app-frpc
 luci-app-store
 docker

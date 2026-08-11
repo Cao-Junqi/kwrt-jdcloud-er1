@@ -106,7 +106,8 @@ jobs:
             luci-theme-aurora luci-app-aurora-config \
             luci-i18n-aurora-config-zh-cn luci-theme-argon \
             luci-app-argon-config luci-app-adblock-fast luci-app-ssr-plus \
-            luci-app-frpc frpc luci-app-store docker dockerd luci-app-dockerman \
+            xray-core luci-app-frpc frpc luci-app-store \
+            docker dockerd luci-app-dockerman \
             kmod-usb3 kmod-usb-dwc3 kmod-usb-dwc3-qcom \
             kmod-usb-storage kmod-usb-storage-uas \
             kmod-fs-ext4 kmod-fs-exfat kmod-fs-ntfs3 kmod-fs-vfat; do

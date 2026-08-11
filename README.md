@@ -18,8 +18,9 @@ The source repository and build run are recorded in every firmware artifact.
 
 - `adblock-fast` uses the 1Hosts Lite list through dnsmasq.
 - SSR Plus is installed for single-node proxy use and remains disabled until a
-  node is configured. The KWRT package pulls in Mihomo as a declared runtime
-  dependency; OpenClash itself and its configuration are excluded.
+  node is configured. Xray-core is included for VLESS/VMess nodes, while the
+  KWRT package also pulls in Mihomo as a declared runtime dependency. OpenClash
+  itself and its configuration are excluded.
 - The official `luci-app-frpc` provides form-based client and proxy management.
   Its upstream sample SSH tunnel is removed, so no port is exposed until a
   proxy is explicitly added. FRPC initially targets localhost and keeps retrying
