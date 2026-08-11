@@ -1,0 +1,32 @@
+# User-facing features
+luci-theme-aurora
+luci-app-adblock-fast
+luci-app-ssr-plus
+luci-app-frpc
+luci-app-istorex
+docker
+dockerd
+luci-app-dockerman
+
+# USB 3.0 host controller and mass-storage support
+kmod-usb3
+kmod-usb-dwc3
+kmod-usb-dwc3-qcom
+kmod-usb-storage
+kmod-usb-storage-uas
+kmod-fs-ext4
+kmod-fs-exfat
+kmod-fs-ntfs3
+kmod-fs-vfat
+
+# Remove overlapping services and risky automatic upgrade/partition helpers
+-luci-app-passwall
+-luci-app-openclash
+-luci-app-gpsysupgrade
+-luci-app-partexp
+-luci-app-wifihistory
+
+# Keep NSS dataplane/SSDK for Ethernet, but route PPPoE without NSS ECM
+-kmod-qca-nss-drv-netlink
+-kmod-qca-nss-drv-pppoe
+-kmod-qca-nss-ecm

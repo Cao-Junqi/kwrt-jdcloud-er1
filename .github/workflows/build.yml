@@ -1,0 +1,115 @@
+name: Build ER1 firmware
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: er1-firmware-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install image tools
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends zstd
+
+      - name: Verify locked package feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kwrt-feed-check
+          while read -r name url expected; do
+            [[ -z "$name" || "$name" == \#* ]] && continue
+            file="/tmp/kwrt-feed-check/${name}.Packages.gz"
+            curl --fail --location --retry 3 "$url/Packages.gz" --output "$file"
+            echo "$expected  $file" | sha256sum --check --strict
+          done < config/feeds.lock
+
+      - name: Download pinned KWRT ImageBuilder
+        shell: bash
+        run: |
+          set -euo pipefail
+          source config/kwrt.env
+          curl --fail --location --retry 3 \
+            "$KWRT_BASE_URL/$KWRT_IMAGEBUILDER" \
+            --output "/tmp/$KWRT_IMAGEBUILDER"
+          echo "$KWRT_IMAGEBUILDER_SHA256  /tmp/$KWRT_IMAGEBUILDER" | \
+            sha256sum --check --strict
+          mkdir -p /tmp/kwrt-imagebuilder
+          tar --zstd --extract --file "/tmp/$KWRT_IMAGEBUILDER" \
+            --directory /tmp/kwrt-imagebuilder --strip-components=1
+
+      - name: Build ER1 images
+        shell: bash
+        run: |
+          set -euo pipefail
+          source config/kwrt.env
+          mapfile -t package_lines < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' config/packages.txt)
+          packages="${package_lines[*]}"
+          make -C /tmp/kwrt-imagebuilder image \
+            PROFILE="$KWRT_PROFILE" \
+            PACKAGES="$packages" \
+            FILES="$GITHUB_WORKSPACE/files"
+
+      - name: Collect and validate firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=/tmp/kwrt-imagebuilder/bin/targets/qualcommax/ipq60xx
+          mkdir -p firmware
+
+          mapfile -t factory < <(find "$target" -maxdepth 1 -type f -name '*jdcloud_re-cs-07*squashfs-factory.bin')
+          mapfile -t sysupgrade < <(find "$target" -maxdepth 1 -type f -name '*jdcloud_re-cs-07*squashfs-sysupgrade.bin')
+          mapfile -t manifest < <(find "$target" -maxdepth 1 -type f -name '*jdcloud_re-cs-07.manifest')
+          [[ ${#factory[@]} -eq 1 ]] || { echo "Expected one factory image" >&2; exit 1; }
+          [[ ${#sysupgrade[@]} -eq 1 ]] || { echo "Expected one sysupgrade image" >&2; exit 1; }
+          [[ ${#manifest[@]} -eq 1 ]] || { echo "Expected one package manifest" >&2; exit 1; }
+
+          for package in \
+            luci-theme-aurora luci-app-adblock-fast luci-app-ssr-plus \
+            luci-app-frpc frpc luci-app-istorex luci-app-quickstart \
+            luci-app-store docker dockerd luci-app-dockerman \
+            kmod-usb3 kmod-usb-dwc3 kmod-usb-dwc3-qcom \
+            kmod-usb-storage kmod-usb-storage-uas \
+            kmod-fs-ext4 kmod-fs-exfat kmod-fs-ntfs3 kmod-fs-vfat; do
+            grep -Eq "^${package}([[:space:]]|$)" "${manifest[0]}" || {
+              echo "Required package missing from manifest: $package" >&2
+              exit 1
+            }
+          done
+
+          for package in \
+            luci-app-passwall luci-app-openclash \
+            kmod-qca-nss-drv-netlink kmod-qca-nss-drv-pppoe kmod-qca-nss-ecm; do
+            if grep -Eq "^${package}([[:space:]]|$)" "${manifest[0]}"; then
+              echo "Excluded package present in manifest: $package" >&2
+              exit 1
+            fi
+          done
+
+          cp "${factory[0]}" "${sysupgrade[0]}" "${manifest[0]}" firmware/
+
+          if find firmware -type f | grep -Eiq '(uboot|u-boot|appsbl|gpt|art|bootconfig|cdt)'; then
+            echo "Forbidden bootloader or partition artifact detected" >&2
+            exit 1
+          fi
+
+          (cd firmware && sha256sum -- * > SHA256SUMS)
+          ls -lh firmware
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ER1-KWRT-firmware
+          path: firmware/
+          if-no-files-found: error
+          retention-days: 7

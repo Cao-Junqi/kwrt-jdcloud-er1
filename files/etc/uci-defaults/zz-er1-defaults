@@ -1,0 +1,51 @@
+#!/bin/sh
+
+uci -q batch <<'EOF'
+set system.@system[0].hostname='ER1'
+set system.@system[0].zonename='Asia/Shanghai'
+set system.@system[0].timezone='CST-8'
+set network.lan.ipaddr='10.0.0.1/24'
+set dhcp.lan.start='100'
+set dhcp.lan.limit='150'
+set dhcp.lan.leasetime='12h'
+set firewall.@defaults[0].flow_offloading='0'
+set firewall.@defaults[0].flow_offloading_hw='0'
+set luci.main.lang='zh_cn'
+set luci.main.mediaurlbase='/luci-static/aurora'
+commit system
+commit network
+commit dhcp
+commit firewall
+commit luci
+EOF
+
+if uci -q get adblock-fast.config >/dev/null; then
+	list_section="$(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)\.name='1Hosts - Lite'$/\1/p")"
+	uci -q set adblock-fast.config.enabled='1'
+	uci -q set adblock-fast.config.force_dns='0'
+	[ -z "$list_section" ] || uci -q set "$list_section.enabled=1"
+	uci -q commit adblock-fast
+fi
+
+if uci -q get shadowsocksr.@global[0] >/dev/null; then
+	uci -q set shadowsocksr.@global[0].global_server='nil'
+	uci -q commit shadowsocksr
+fi
+
+if uci -q get frpc.common >/dev/null; then
+	uci -q delete frpc.ssh
+	uci -q set frpc.common.server_addr='127.0.0.1'
+	uci -q set frpc.common.server_port='7000'
+	uci -q set frpc.common.log_level='warn'
+	uci -q set frpc.common.login_fail_exit='false'
+	uci -q commit frpc
+fi
+
+if uci -q get dockerd.globals >/dev/null; then
+	uci -q set dockerd.globals.data_root='/mnt/mmcblk0p24/docker/'
+	uci -q commit dockerd
+fi
+
+[ ! -x /etc/init.d/dockerd ] || /etc/init.d/dockerd disable
+
+exit 0
