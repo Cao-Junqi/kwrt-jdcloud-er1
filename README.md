@@ -3,7 +3,7 @@
 Custom KWRT firmware for JDCloud RE-CS-07 (ER1), built with the official KWRT
 ImageBuilder in GitHub Actions.
 
-Firmware identity: **ER1 Stable Firmware 1.0.0**, built by **Cao-Junqi**.
+Firmware identity: **ER1 Stable Firmware 1.0.1**, built by **Cao-Junqi**.
 The source repository and build run are recorded in every firmware artifact.
 
 ## Goals
@@ -24,8 +24,8 @@ The source repository and build run are recorded in every firmware artifact.
   Its upstream sample SSH tunnel is removed, so no port is exposed until a
   proxy is explicitly added. FRPC initially targets localhost and keeps retrying
   until the actual server address and token are configured.
-- iStoreX is included; its dependencies provide QuickStart and the LinkEase app
-  store.
+- The LinkEase app store is included without iStoreX or QuickStart.
+- LuCI displays the ER1 firmware identity and omits KWRT promotional links.
 - Docker and Dockerman are installed, use `/mnt/mmcblk0p24/docker` for data, and
   remain disabled until explicitly started.
 - The USB 3.0 host controller, USB mass-storage/UAS drivers, and ext4, exFAT,
@@ -34,14 +34,16 @@ The source repository and build run are recorded in every firmware artifact.
   which drive the Ethernet ports, remain installed; NSS ECM and NSS PPPoE
   acceleration, together with the netlink package that depends on NSS PPPoE,
   are excluded.
-- LAN address is `10.0.0.1/24`, hostname is `ER1`, timezone is Asia/Shanghai, and
-  LuCI uses the Aurora theme.
+- LAN address is `10.0.0.1/24`, hostname is `ER1`, and timezone is
+  Asia/Shanghai. LuCI defaults to Aurora with its configuration interface;
+  Argon and its configuration interface are also installed.
 
 ## Build
 
 The only build entry point is the manually triggered `Build ER1 firmware`
 GitHub Actions workflow. It verifies the pinned ImageBuilder and package-feed
-indexes before building, then uploads a short-lived artifact containing:
+indexes before building, then uploads a short-lived artifact and publishes the
+same files to the versioned GitHub Release containing:
 
 - `*-squashfs-sysupgrade.bin`: upgrade from a running compatible system.
 - `*-squashfs-factory.bin`: recovery/installation through the current U-Boot

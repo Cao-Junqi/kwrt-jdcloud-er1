@@ -1,9 +1,13 @@
 # User-facing features
 luci-theme-aurora
+luci-app-aurora-config
+luci-i18n-aurora-config-zh-cn
+luci-theme-argon
+luci-app-argon-config
 luci-app-adblock-fast
 luci-app-ssr-plus
 luci-app-frpc
-luci-app-istorex
+luci-app-store
 docker
 dockerd
 luci-app-dockerman
@@ -25,6 +29,9 @@ kmod-fs-vfat
 -luci-app-gpsysupgrade
 -luci-app-partexp
 -luci-app-wifihistory
+-luci-app-istorex
+-luci-app-quickstart
+-quickstart
 
 # Keep NSS dataplane/SSDK for Ethernet, but route PPPoE without NSS ECM
 -kmod-qca-nss-drv-netlink

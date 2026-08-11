@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: er1-firmware-build
@@ -61,11 +61,26 @@ jobs:
           done < config/feeds.lock
           printf 'src imagebuilder file:packages\n' >> "$repositories"
 
+      - name: Download pinned external packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_dir=/tmp/kwrt-imagebuilder/packages
+          mkdir -p "$package_dir"
+          while read -r name url expected; do
+            [[ -z "$name" || "$name" == \#* ]] && continue
+            file="$package_dir/$(basename "$url")"
+            curl --fail --location --retry 3 "$url" --output "$file"
+            echo "$expected  $file" | sha256sum --check --strict
+          done < config/external-packages.lock
+
       - name: Build ER1 images
         shell: bash
         run: |
           set -euo pipefail
           source config/kwrt.env
+          grep -Fqx "ER1_FIRMWARE_VERSION='$ER1_FIRMWARE_VERSION'" files/etc/er1-release
+          grep -Fq "$ER1_FIRMWARE_NAME $ER1_FIRMWARE_VERSION" files/etc/banner
           mapfile -t package_lines < <(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' config/packages.txt)
           packages="${package_lines[*]}"
           make -C /tmp/kwrt-imagebuilder image \
@@ -88,9 +103,10 @@ jobs:
           [[ ${#manifest[@]} -eq 1 ]] || { echo "Expected one package manifest" >&2; exit 1; }
 
           for package in \
-            luci-theme-aurora luci-app-adblock-fast luci-app-ssr-plus \
-            luci-app-frpc frpc luci-app-istorex luci-app-quickstart \
-            luci-app-store docker dockerd luci-app-dockerman \
+            luci-theme-aurora luci-app-aurora-config \
+            luci-i18n-aurora-config-zh-cn luci-theme-argon \
+            luci-app-argon-config luci-app-adblock-fast luci-app-ssr-plus \
+            luci-app-frpc frpc luci-app-store docker dockerd luci-app-dockerman \
             kmod-usb3 kmod-usb-dwc3 kmod-usb-dwc3-qcom \
             kmod-usb-storage kmod-usb-storage-uas \
             kmod-fs-ext4 kmod-fs-exfat kmod-fs-ntfs3 kmod-fs-vfat; do
@@ -102,6 +118,7 @@ jobs:
 
           for package in \
             luci-app-passwall luci-app-openclash \
+            luci-app-istorex luci-app-quickstart quickstart \
             kmod-qca-nss-drv-netlink kmod-qca-nss-drv-pppoe kmod-qca-nss-ecm; do
             if grep -Eq "^${package}([[:space:]]|$)" "${manifest[0]}"; then
               echo "Excluded package present in manifest: $package" >&2
@@ -138,3 +155,25 @@ jobs:
           path: firmware/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish firmware release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source config/kwrt.env
+          tag="v$ER1_FIRMWARE_VERSION"
+          title="$ER1_FIRMWARE_NAME $ER1_FIRMWARE_VERSION"
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" firmware/* \
+              --clobber \
+              --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" firmware/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "$title" \
+              --notes "JDCloud RE-CS-07 (ER1) firmware built from commit $GITHUB_SHA. Use sysupgrade from a running system or factory from the existing U-Boot web interface."
+          fi

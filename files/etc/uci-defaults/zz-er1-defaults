@@ -59,17 +59,33 @@ if [ -r /etc/er1-release ]; then
 	[ -f "$os_release" ] || os_release=/etc/os-release
 	if [ -f "$os_release" ]; then
 		sed -i \
-			"s|^NAME=.*|NAME=\"${ER1_FIRMWARE_NAME}\"|" \
-			"s|^PRETTY_NAME=.*|PRETTY_NAME=\"${release_description}\"|" \
-			"s|^HOME_URL=.*|HOME_URL=\"${ER1_REPOSITORY}\"|" \
-			"s|^BUG_URL=.*|BUG_URL=\"${ER1_REPOSITORY}/issues\"|" \
-			"s|^SUPPORT_URL=.*|SUPPORT_URL=\"${ER1_REPOSITORY}/issues\"|" \
-			"s|^FIRMWARE_URL=.*|FIRMWARE_URL=\"${ER1_REPOSITORY}\"|" \
-			"s|^OPENWRT_DEVICE_MANUFACTURER=.*|OPENWRT_DEVICE_MANUFACTURER=\"${ER1_BUILDER}\"|" \
-			"s|^OPENWRT_DEVICE_MANUFACTURER_URL=.*|OPENWRT_DEVICE_MANUFACTURER_URL=\"${ER1_REPOSITORY}\"|" \
-			"s|^OPENWRT_DEVICE_PRODUCT=.*|OPENWRT_DEVICE_PRODUCT=\"JDCloud RE-CS-07 (ER1)\"|" \
-			"s|^OPENWRT_RELEASE=.*|OPENWRT_RELEASE=\"${release_description}\"|" "$os_release"
+			-e "s|^NAME=.*|NAME=\"${ER1_FIRMWARE_NAME}\"|" \
+			-e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"${release_description}\"|" \
+			-e "s|^HOME_URL=.*|HOME_URL=\"${ER1_REPOSITORY}\"|" \
+			-e "s|^BUG_URL=.*|BUG_URL=\"${ER1_REPOSITORY}/issues\"|" \
+			-e "s|^SUPPORT_URL=.*|SUPPORT_URL=\"${ER1_REPOSITORY}/issues\"|" \
+			-e "s|^FIRMWARE_URL=.*|FIRMWARE_URL=\"${ER1_REPOSITORY}\"|" \
+			-e "s|^OPENWRT_DEVICE_MANUFACTURER=.*|OPENWRT_DEVICE_MANUFACTURER=\"${ER1_BUILDER}\"|" \
+			-e "s|^OPENWRT_DEVICE_MANUFACTURER_URL=.*|OPENWRT_DEVICE_MANUFACTURER_URL=\"${ER1_REPOSITORY}\"|" \
+			-e "s|^OPENWRT_DEVICE_PRODUCT=.*|OPENWRT_DEVICE_PRODUCT=\"JDCloud RE-CS-07 (ER1)\"|" \
+			-e "s|^OPENWRT_RELEASE=.*|OPENWRT_RELEASE=\"${release_description}\"|" "$os_release"
 	fi
+fi
+
+# KWRT 25.12.5 carries broken ER1 sysupgrade calls and a malformed
+# compatibility condition. Keep upgrades on the detected primary partitions.
+platform_upgrade=/lib/upgrade/platform.sh
+if grep -q 'mmc_do_upgrade "$1"' "$platform_upgrade" 2>/dev/null; then
+	sed -i \
+		-e 's/kernelname="0:HLOS"/CI_KERNPART="0:HLOS"/' \
+		-e 's/rootfsname="rootfs"/CI_ROOTPART="rootfs"/' \
+		-e 's/mmc_do_upgrade/emmc_do_upgrade/' "$platform_upgrade"
+fi
+
+fwtool_upgrade=/lib/upgrade/fwtool.sh
+if grep -q 'if ((\[' "$fwtool_upgrade" 2>/dev/null; then
+	sed -i '/if ((\[.*SAVE_CONFIG/c\
+\t\t\tif { [ "${devicecompat#.*}" != "${imagecompat#.*}" ] || [ "$dev" = "$oem" ]; } \&\& [ "$SAVE_CONFIG" = "1" ]; then' "$fwtool_upgrade"
 fi
 
 [ ! -x /etc/init.d/dockerd ] || /etc/init.d/dockerd disable

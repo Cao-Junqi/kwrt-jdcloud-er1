@@ -1,0 +1,3 @@
+# package url sha256
+luci-app-aurora-config https://github.com/eamonxg/luci-app-aurora-config/releases/download/v1.2.0/luci-app-aurora-config_1.2.0-r20260808_all.ipk dcc0c78044255fa827abe5d7341a263c049739ffaf28b6204477fdf5eeedb4ad
+luci-i18n-aurora-config-zh-cn https://github.com/eamonxg/luci-app-aurora-config/releases/download/v1.2.0/luci-i18n-aurora-config-zh-cn_26.220.23245.28c257b_all.ipk cfee13516624137291927e7a29fb3c24a0642218f4c46014e6040596a76d2b75
