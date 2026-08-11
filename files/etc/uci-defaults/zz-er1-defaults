@@ -46,6 +46,32 @@ if uci -q get dockerd.globals >/dev/null; then
 	uci -q commit dockerd
 fi
 
+if [ -r /etc/er1-release ]; then
+	. /etc/er1-release
+	[ ! -r /etc/openwrt_release ] || . /etc/openwrt_release
+	release_description="${ER1_FIRMWARE_NAME} ${ER1_FIRMWARE_VERSION} (KWRT ${DISTRIB_RELEASE:-25.12.5}) by ${ER1_BUILDER}"
+	if [ -f /etc/openwrt_release ]; then
+		sed -i "s|^DISTRIB_DESCRIPTION=.*|DISTRIB_DESCRIPTION='${release_description}'|" /etc/openwrt_release
+		grep -q '^DISTRIB_SOURCE=' /etc/openwrt_release || echo "DISTRIB_SOURCE='${ER1_REPOSITORY}'" >> /etc/openwrt_release
+		grep -q '^DISTRIB_BUILDER=' /etc/openwrt_release || echo "DISTRIB_BUILDER='${ER1_BUILDER}'" >> /etc/openwrt_release
+	fi
+	os_release=/usr/lib/os-release
+	[ -f "$os_release" ] || os_release=/etc/os-release
+	if [ -f "$os_release" ]; then
+		sed -i \
+			"s|^NAME=.*|NAME=\"${ER1_FIRMWARE_NAME}\"|" \
+			"s|^PRETTY_NAME=.*|PRETTY_NAME=\"${release_description}\"|" \
+			"s|^HOME_URL=.*|HOME_URL=\"${ER1_REPOSITORY}\"|" \
+			"s|^BUG_URL=.*|BUG_URL=\"${ER1_REPOSITORY}/issues\"|" \
+			"s|^SUPPORT_URL=.*|SUPPORT_URL=\"${ER1_REPOSITORY}/issues\"|" \
+			"s|^FIRMWARE_URL=.*|FIRMWARE_URL=\"${ER1_REPOSITORY}\"|" \
+			"s|^OPENWRT_DEVICE_MANUFACTURER=.*|OPENWRT_DEVICE_MANUFACTURER=\"${ER1_BUILDER}\"|" \
+			"s|^OPENWRT_DEVICE_MANUFACTURER_URL=.*|OPENWRT_DEVICE_MANUFACTURER_URL=\"${ER1_REPOSITORY}\"|" \
+			"s|^OPENWRT_DEVICE_PRODUCT=.*|OPENWRT_DEVICE_PRODUCT=\"JDCloud RE-CS-07 (ER1)\"|" \
+			"s|^OPENWRT_RELEASE=.*|OPENWRT_RELEASE=\"${release_description}\"|" "$os_release"
+	fi
+fi
+
 [ ! -x /etc/init.d/dockerd ] || /etc/init.d/dockerd disable
 
 exit 0

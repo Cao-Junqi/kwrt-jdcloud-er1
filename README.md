@@ -3,6 +3,9 @@
 Custom KWRT firmware for JDCloud RE-CS-07 (ER1), built with the official KWRT
 ImageBuilder in GitHub Actions.
 
+Firmware identity: **ER1 Stable Firmware 1.0.0**, built by **Cao-Junqi**.
+The source repository and build run are recorded in every firmware artifact.
+
 ## Goals
 
 - Prefer routing stability over maximum NSS benchmark throughput.

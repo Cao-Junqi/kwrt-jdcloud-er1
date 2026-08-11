@@ -1,4 +1,5 @@
 name: Build ER1 firmware
+run-name: ER1 firmware by Cao-Junqi (${{ github.sha }})
 
 on:
   workflow_dispatch:
@@ -109,6 +110,18 @@ jobs:
           done
 
           cp "${factory[0]}" "${sysupgrade[0]}" "${manifest[0]}" firmware/
+
+          source config/kwrt.env
+          cat > firmware/BUILD-INFO.txt <<EOF
+          Firmware: $ER1_FIRMWARE_NAME $ER1_FIRMWARE_VERSION
+          Device: JDCloud RE-CS-07 (ER1)
+          Base: KWRT 25.12.5 / qualcommax-ipq60xx
+          Builder: $ER1_BUILDER
+          Source: $ER1_REPOSITORY
+          Commit: $GITHUB_SHA
+          Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          Built at (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
 
           if find firmware -type f | grep -Eiq '(uboot|u-boot|appsbl|gpt|art|bootconfig|cdt)'; then
             echo "Forbidden bootloader or partition artifact detected" >&2
