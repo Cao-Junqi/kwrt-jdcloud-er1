@@ -19,6 +19,12 @@ commit firewall
 commit luci
 EOF
 
+uci -q set network.wan.peerdns='0'
+uci -q delete network.wan.dns
+uci -q add_list network.wan.dns='223.5.5.5'
+uci -q add_list network.wan.dns='119.29.29.29'
+uci -q commit network
+
 if uci -q get adblock-fast.config >/dev/null; then
 	for section in $(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)=file_url$/\1/p"); do
 		uci -q set "$section.enabled=0"
