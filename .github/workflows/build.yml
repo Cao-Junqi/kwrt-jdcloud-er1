@@ -48,6 +48,18 @@ jobs:
           tar --zstd --extract --file "/tmp/$KWRT_IMAGEBUILDER" \
             --directory /tmp/kwrt-imagebuilder --strip-components=1
 
+      - name: Configure public KWRT package feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          repositories=/tmp/kwrt-imagebuilder/repositories.conf
+          : > "$repositories"
+          while read -r name url expected; do
+            [[ -z "$name" || "$name" == \#* ]] && continue
+            printf 'src/gz %s %s\n' "$name" "$url" >> "$repositories"
+          done < config/feeds.lock
+          printf 'src imagebuilder file:packages\n' >> "$repositories"
+
       - name: Build ER1 images
         shell: bash
         run: |
