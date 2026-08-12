@@ -30,7 +30,8 @@ IPQ6018 平台，拥有 2 GB 内存和 8 GB eMMC，但市面上可长期稳定�
 - 广告过滤：内置 `adblock-fast`，默认使用 1Hosts Lite，通过 dnsmasq 工作。
 - 内网穿透：内置维护中的 FRPC 与 LuCI 管理界面，默认不开放任何穿透端口。
 - Docker：内置 Docker、Dockerd 和 Dockerman，默认启用；数据目录预设为
-  `/mnt/mmcblk0p24/docker/`。
+  `/mnt/mmcblk0p24/docker/`；内置 TUN 驱动，可运行 Cloudflare Mesh/WARP 等需要
+  `/dev/net/tun` 的容器。
 - 应用商店：只保留 LinkEase `luci-app-store`，不包含 iStoreX 和 QuickStart。
 - 双主题：默认使用 Aurora，并提供完整的主题设计入口；同时内置 Argon 及其配置页面。
 - USB 3.0：包含 USB 存储、UAS、ext4、exFAT、NTFS3 和 VFAT 支持。

@@ -108,7 +108,7 @@ jobs:
             luci-app-argon-config luci-app-adblock-fast \
             gawk grep sed coreutils-sort luci-app-ssr-plus xray-core \
             luci-app-frpc frpc luci-app-store \
-            docker dockerd luci-app-dockerman \
+            docker dockerd luci-app-dockerman kmod-tun \
             kmod-usb3 kmod-usb-dwc3 kmod-usb-dwc3-qcom \
             kmod-usb-storage kmod-usb-storage-uas \
             kmod-fs-ext4 kmod-fs-exfat kmod-fs-ntfs3 kmod-fs-vfat; do

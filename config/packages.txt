@@ -16,6 +16,7 @@ luci-app-store
 docker
 dockerd
 luci-app-dockerman
+kmod-tun
 
 # USB 3.0 host controller and mass-storage support
 kmod-usb3
