@@ -98,6 +98,10 @@ if grep -q 'if ((\[' "$fwtool_upgrade" 2>/dev/null; then
 \t\t\tif { [ "${devicecompat#.*}" != "${imagecompat#.*}" ] || [ "$dev" = "$oem" ]; } \&\& [ "$SAVE_CONFIG" = "1" ]; then' "$fwtool_upgrade"
 fi
 
-[ ! -x /etc/init.d/dockerd ] || /etc/init.d/dockerd disable
+if [ -x /etc/init.d/dockerd ]; then
+	mkdir -p /mnt/mmcblk0p24/docker
+	chmod 700 /mnt/mmcblk0p24/docker
+	/etc/init.d/dockerd enable
+fi
 
 exit 0

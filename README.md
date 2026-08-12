@@ -29,7 +29,7 @@ IPQ6018 平台，拥有 2 GB 内存和 8 GB eMMC，但市面上可长期稳定�
   OpenClash。
 - 广告过滤：内置 `adblock-fast`，默认使用 1Hosts Lite，通过 dnsmasq 工作。
 - 内网穿透：内置维护中的 FRPC 与 LuCI 管理界面，默认不开放任何穿透端口。
-- Docker：内置 Docker、Dockerd 和 Dockerman，默认关闭；数据目录预设为
+- Docker：内置 Docker、Dockerd 和 Dockerman，默认启用；数据目录预设为
   `/mnt/mmcblk0p24/docker/`。
 - 应用商店：只保留 LinkEase `luci-app-store`，不包含 iStoreX 和 QuickStart。
 - 双主题：默认使用 Aurora，并提供完整的主题设计入口；同时内置 Argon 及其配置页面。
@@ -66,7 +66,7 @@ BOOTCONFIG 或 CDT 文件。
 - WAN 不使用 PPPoE 下发的 DNS，固定使用阿里云 `223.5.5.5` 和腾讯 DNSPod
   `119.29.29.29`；SSR Plus 的代理 DNS 使用 `8.8.8.8`
 - SSR Plus、FRPC 需要用户添加自己的节点或服务端信息
-- Docker 默认不启动，避免未配置存储时占用系统资源
+- Docker 默认启用，数据保存在 eMMC 的 `/mnt/mmcblk0p24/docker/`
 
 ## 构建方式
 
