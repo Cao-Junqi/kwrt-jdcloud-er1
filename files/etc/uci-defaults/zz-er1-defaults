@@ -1,6 +1,10 @@
 #!/bin/sh
 
-uci -q batch <<'EOF'
+first_install=0
+[ -e /etc/er1-initialized ] || first_install=1
+
+if [ "$first_install" = 1 ]; then
+	uci -q batch <<'EOF'
 set system.@system[0].hostname='ER1'
 set system.@system[0].zonename='Asia/Shanghai'
 set system.@system[0].timezone='CST-8'
@@ -19,36 +23,39 @@ commit firewall
 commit luci
 EOF
 
-uci -q set network.wan.peerdns='0'
-uci -q delete network.wan.dns
-uci -q add_list network.wan.dns='223.5.5.5'
-uci -q add_list network.wan.dns='119.29.29.29'
-uci -q commit network
+	uci -q set network.wan.peerdns='0'
+	uci -q delete network.wan.dns
+	uci -q add_list network.wan.dns='223.5.5.5'
+	uci -q add_list network.wan.dns='119.29.29.29'
+	uci -q commit network
 
-if uci -q get adblock-fast.config >/dev/null; then
-	for section in $(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)=file_url$/\1/p"); do
-		uci -q set "$section.enabled=0"
-	done
-	list_section="$(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)\.name='1Hosts - Lite'$/\1/p")"
-	uci -q set adblock-fast.config.enabled='1'
-	uci -q set adblock-fast.config.force_dns='0'
-	[ -z "$list_section" ] || uci -q set "$list_section.enabled=1"
-	uci -q commit adblock-fast
-fi
+	if uci -q get adblock-fast.config >/dev/null; then
+		for section in $(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)=file_url$/\1/p"); do
+			uci -q set "$section.enabled=0"
+		done
+		list_section="$(uci -q show adblock-fast | sed -n "s/^\(adblock-fast\.[^=]*\)\.name='1Hosts - Lite'$/\1/p")"
+		uci -q set adblock-fast.config.enabled='1'
+		uci -q set adblock-fast.config.force_dns='0'
+		[ -z "$list_section" ] || uci -q set "$list_section.enabled=1"
+		uci -q commit adblock-fast
+	fi
 
-if uci -q get shadowsocksr.@global[0] >/dev/null; then
-	uci -q set shadowsocksr.@global[0].global_server='nil'
-	uci -q set shadowsocksr.@global[0].tunnel_forward='8.8.8.8:53'
-	uci -q commit shadowsocksr
-fi
+	if uci -q get shadowsocksr.@global[0] >/dev/null; then
+		uci -q set shadowsocksr.@global[0].global_server='nil'
+		uci -q set shadowsocksr.@global[0].tunnel_forward='8.8.8.8:53'
+		uci -q commit shadowsocksr
+	fi
 
-if uci -q get frpc.common >/dev/null; then
-	uci -q delete frpc.ssh
-	uci -q set frpc.common.server_addr='127.0.0.1'
-	uci -q set frpc.common.server_port='7000'
-	uci -q set frpc.common.log_level='warn'
-	uci -q set frpc.common.login_fail_exit='false'
-	uci -q commit frpc
+	if uci -q get frpc.common >/dev/null; then
+		uci -q delete frpc.ssh
+		uci -q set frpc.common.server_addr='127.0.0.1'
+		uci -q set frpc.common.server_port='7000'
+		uci -q set frpc.common.log_level='warn'
+		uci -q set frpc.common.login_fail_exit='false'
+		uci -q commit frpc
+	fi
+
+	touch /etc/er1-initialized
 fi
 
 if uci -q get dockerd.globals >/dev/null; then
@@ -103,5 +110,7 @@ if [ -x /etc/init.d/dockerd ]; then
 	chmod 700 /mnt/mmcblk0p24/docker
 	/etc/init.d/dockerd enable
 fi
+
+[ ! -x /etc/init.d/er1-restore ] || /etc/init.d/er1-restore enable
 
 exit 0

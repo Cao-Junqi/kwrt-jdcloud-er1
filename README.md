@@ -81,6 +81,29 @@ BOOTCONFIG 或 CDT 文件。
 设备基线、U-Boot 和分区探测记录见
 [`docs/device-baseline.md`](docs/device-baseline.md)。
 
+## 终端升级与插件恢复
+
+固件内置 `er1-upgrade`。通过终端升级时使用：
+
+```sh
+er1-upgrade upgrade /tmp/xxx-squashfs-sysupgrade.bin
+```
+
+也可以直接提供固件下载 URL。该命令会先将系统配置、SSR Plus、FRPC、OpenClash、
+Adblock、主题配置和插件清单备份到 `/mnt/mmcblk0p24/er1-upgrade/`，再调用
+`sysupgrade`。Docker 数据位于独立 eMMC 分区，不会随系统升级删除。
+
+新系统启动后会自动从当前软件源补装缺失的 LuCI 插件和代理内核。自动恢复失败时，
+可以运行：
+
+```sh
+er1-upgrade status
+er1-upgrade restore
+```
+
+恢复过程不会把旧内核模块或整套旧系统二进制覆盖到新固件。只有仍存在于已配置软件源
+中的插件可以自动重装；手工下载且没有软件源的第三方 IPK 需要重新提供安装包。
+
 ## 项目边界
 
 本项目只负责系统固件及默认配置，不包含代理节点、FRP 密钥、Cloudflare Tunnel 凭据

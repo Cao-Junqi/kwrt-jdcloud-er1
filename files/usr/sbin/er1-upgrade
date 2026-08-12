@@ -1,0 +1,155 @@
+#!/bin/sh
+
+set -eu
+
+state_dir=/mnt/mmcblk0p24/er1-upgrade
+backup_dir=$state_dir/backups
+pending_file=$state_dir/pending-packages
+log_file=$state_dir/restore.log
+
+usage() {
+	cat <<'EOF'
+用法：
+  er1-upgrade backup
+  er1-upgrade upgrade <sysupgrade.bin 或 URL>
+  er1-upgrade restore
+  er1-upgrade status
+
+upgrade 会先把配置、插件数据和插件清单备份到 eMMC，再执行 sysupgrade。
+新系统启动后会自动补装软件源中仍可用的缺失插件；restore 可手动重试。
+EOF
+}
+
+require_storage() {
+	grep -q ' /mnt/mmcblk0p24 ' /proc/mounts || {
+		echo "错误：eMMC 数据分区 /mnt/mmcblk0p24 未挂载。" >&2
+		exit 1
+	}
+	mkdir -p "$backup_dir"
+	chmod 700 "$state_dir" "$backup_dir"
+}
+
+write_package_list() {
+	opkg status | awk '
+		function keep(name) {
+			return name ~ /^luci-(app|theme|i18n)-/ ||
+				name ~ /^(xray-core|v2ray-core|sing-box|mihomo|frpc|frps|docker|dockerd|docker-compose)$/
+		}
+		/^Package: / { pkg=$2; installed=0 }
+		/^Status: .* installed$/ { installed=1 }
+		/^$/ {
+			if (installed && keep(pkg)) print pkg
+			pkg=""; installed=0
+		}
+		END { if (installed && keep(pkg)) print pkg }
+	' | sort -u > "$1"
+}
+
+create_backup() {
+	mark_pending=${1:-0}
+	require_storage
+	stamp=$(date +%Y%m%d-%H%M%S)
+	backup=$backup_dir/er1-$stamp.tar.gz
+	packages=$backup_dir/er1-$stamp.packages
+
+	sysupgrade -b "$backup"
+	write_package_list "$packages"
+	chmod 600 "$backup" "$packages"
+	if [ "$mark_pending" = 1 ]; then
+		cp "$packages" "$pending_file"
+		chmod 600 "$pending_file"
+	fi
+
+	echo "配置备份：$backup"
+	echo "插件清单：$packages"
+}
+
+download_image() {
+	case "$1" in
+		http://*|https://*)
+			image=/tmp/er1-sysupgrade.bin
+			curl --fail --location --retry 3 "$1" --output "$image"
+			;;
+		*) image=$1 ;;
+	esac
+
+	[ -f "$image" ] || {
+		echo "错误：找不到固件 $image" >&2
+		exit 1
+	}
+}
+
+restore_packages() {
+	if [ "${1:-}" = --auto ]; then
+		for _ in $(seq 1 30); do
+			grep -q ' /mnt/mmcblk0p24 ' /proc/mounts && break
+			sleep 2
+		done
+	fi
+
+	require_storage
+	[ -s "$pending_file" ] || {
+		echo "没有待恢复的插件。"
+		return 0
+	}
+
+	if [ "${1:-}" = --auto ]; then
+		for _ in $(seq 1 30); do
+			nslookup dl.openwrt.ai 127.0.0.1 >/dev/null 2>&1 && break
+			sleep 10
+		done
+	fi
+
+	missing=
+	while read -r package; do
+		[ -n "$package" ] || continue
+		opkg status "$package" 2>/dev/null | grep -q '^Status: .* installed$' || missing="$missing $package"
+	done < "$pending_file"
+
+	if [ -n "$missing" ]; then
+		{
+			echo "[$(date)] 恢复插件：$missing"
+			opkg update
+			opkg install $missing
+		} >> "$log_file" 2>&1 || {
+			echo "插件恢复未完成，稍后运行 er1-upgrade restore 重试。" >&2
+			return 1
+		}
+	fi
+
+	rm -f "$pending_file"
+	/etc/init.d/rpcd restart >/dev/null 2>&1 || true
+	/etc/init.d/uhttpd restart >/dev/null 2>&1 || true
+	echo "插件与配置恢复完成。"
+}
+
+case "${1:-}" in
+	backup)
+		create_backup 0
+		;;
+	upgrade)
+		[ "$#" -eq 2 ] || { usage; exit 1; }
+		download_image "$2"
+		sysupgrade -T "$image"
+		create_backup 1
+		echo "镜像校验通过，即将保留配置并升级。"
+		sysupgrade -k "$image"
+		;;
+	restore)
+		restore_packages "${2:-}"
+		;;
+	status)
+		require_storage
+		if [ -s "$pending_file" ]; then
+			echo "存在待恢复插件："
+			cat "$pending_file"
+		else
+			echo "没有待恢复插件。"
+		fi
+		[ ! -f "$log_file" ] || tail -30 "$log_file"
+		;;
+	*)
+		usage
+		exit 1
+		;;
+esac

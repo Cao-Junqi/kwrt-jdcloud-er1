@@ -1,0 +1,12 @@
+/etc/er1-initialized
+/etc/config/
+/etc/ssrplus/
+/etc/openclash/config/
+/etc/openclash/custom/
+/etc/openclash/proxy_provider/
+/etc/openclash/rule_provider/
+/etc/frp/
+/etc/docker/
+/etc/aurora/
+/etc/crontabs/
+/root/.ssh/
